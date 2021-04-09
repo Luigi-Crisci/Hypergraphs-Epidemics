@@ -1,0 +1,13 @@
+name = "BelgianDataset"
+uuid = "7d859bdb-025f-47b4-bb71-a8d0f5da9d73"
+authors = ["Luigi Crisci <luigicrisci1997@gmail.com> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
