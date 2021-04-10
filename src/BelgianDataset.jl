@@ -7,7 +7,9 @@ using Missings
 
 export analyze_partecipant_data
 export analyze_contact_data
+export next_10_multiple
 
+include("utils.jl")
 include("analyze_dataset.jl")
 
 end
