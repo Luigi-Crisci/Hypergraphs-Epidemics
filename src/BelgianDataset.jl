@@ -5,10 +5,11 @@ using DataFrames
 using Query
 using Missings
 
-export analyze_partecipant_data
+export join_partecipant_common_and_extra_datasets
 export analyze_contact_data
 export next_10_multiple
 
+include("Constants.jl")
 include("utils.jl")
 include("analyze_dataset.jl")
 

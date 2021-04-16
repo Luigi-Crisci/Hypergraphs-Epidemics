@@ -1,29 +1,58 @@
-function analyze_partecipant_data(common_dataset::String,extra_dataset::String)
-	df_common = CSV.File(common_dataset) |> DataFrame
-	df_extra = CSV.File(extra_dataset) |> DataFrame
+"""
+	Join partecipant common and extra dataset
+"""
+function join_partecipant_common_and_extra_datasets(common_dataset::String,extra_dataset::String)
+	df_common = CSV.File(common_dataset,missingstring="NA") |> DataFrame
+	df_extra = CSV.File(extra_dataset,missingstring="NA") |> DataFrame
 
 	df_result = @from r1 in df_common begin
 				@join r2 in df_extra on r1.part_id equals r2.part_id
-				@select {r1.part_id,r1.part_age,r1.part_gender,r2.part_occupation}
+				@select {r1.part_id,r1.hh_id,r1.part_age,r1.part_gender,r2.part_occupation}
 				@collect DataFrame
 	end
 
-	CSV.write("resources/processed_dataset.csv",df_result)
+	replace!(df_result.part_occupation, missing => 6) #TODO: Semplification, should be assigned to a proper label
 
-	# get_metadata(df_result)
+	CSV.write("resources/processed_partecipant_extra.csv",df_result)
+
+	return df_result
 end
 
+function join_contact_common_and_extra_datasets(common_dataset::String,extra_dataset::String)
+	df_common = CSV.File(common_dataset,missingstring="NA") |> DataFrame 
+	df_extra = CSV.File(extra_dataset,missingstring="NA") |> DataFrame
+
+	df_result = @from r1 in df_common begin
+				@join r2 in df_extra on r1.cont_id equals r2.cont_id
+				@select {r1.cont_id,r1.part_id,r1.cnt_age_exact,r1.cnt_age_est_min,r1.cnt_age_est_max,r1.cnt_gender,
+				r1.cnt_home,r1.cnt_work,r1.cnt_school,r1.cnt_transport,r1.cnt_leisure,r1.cnt_otherplace,
+				r1.frequency_multi,r1.phys_contact,r1.duration_multi,r2.cnt_otherplace_family,r2.cnt_otherplace_grandparents,r2.cnt_hh_member}
+				@collect DataFrame
+	end
+
+	CSV.write("resources/processed_contact_extra.csv",df_result)
+
+	return df_result
+end
+
+"""
+	Return exact age, or the Integer mean between min and max age
+"""
 function calculate_age(exact,min,max)
 	return exact != -1 ? exact : (min == -1 || max == -1 ? -1 : floor(Int,(min+max)/2) )
 end
 
-function analyze_contact_data(partecipand_dataset::String,contact_dataset::String)
-	df_partecipant = CSV.File(partecipand_dataset) |> DataFrame
-	df_contact = CSV.File(contact_dataset,missingstring="NA") |> DataFrame
+"""
+	Join partecipant and contact datasets, and gets some metadata
+"""
+function analyze_contact_data(partecipand_dataset::String,partecipant_extra_dataset::String,contact_dataset::String,contact_extra_dataset::String)
+	df_partecipant = join_partecipant_common_and_extra_datasets(partecipand_dataset,partecipant_extra_dataset)
+	df_contact = join_contact_common_and_extra_datasets(contact_dataset,contact_extra_dataset)
 
 	replace!(df_contact.cnt_age_exact, missing => -1)
 	replace!(df_contact.cnt_age_est_max, missing => -1)
 	replace!(df_contact.cnt_age_est_min, missing => -1)
+	replace!(df_contact.cnt_hh_member, missing => "N")
 	
 	df_contact.cnt_home = convert.(Int,df_contact.cnt_home)
 	df_contact.cnt_work = convert.(Int,df_contact.cnt_work)
@@ -39,39 +68,108 @@ function analyze_contact_data(partecipand_dataset::String,contact_dataset::Strin
 
 	df_result = @from r1 in df_partecipant begin
 				@join r2 in df_contact on r1.part_id equals r2.part_id
-				@select {r1.part_id,r2.cont_id,r1.part_age,r2.age,r1.part_gender,r2.cnt_home,r2.cnt_work,r2.cnt_school,r2.cnt_transport,r2.cnt_leisure,r2.cnt_otherplace,r2.frequency_multi,r2.phys_contact,r2.duration_multi}
+				@select {r1.part_id,r1.hh_id,r2.cont_id,r1.part_age,r2.age,r1.part_gender,
+						 r2.cnt_home,r2.cnt_work,r2.cnt_school,r2.cnt_transport,r2.cnt_leisure,
+						 r2.cnt_otherplace,r2.frequency_multi,r2.phys_contact,r2.duration_multi,
+						 r2.cnt_otherplace_family,r2.cnt_otherplace_grandparents,r2.cnt_hh_member}
 				@collect DataFrame
 	end
 				
-	CSV.write("resources/processed_dataset_contact.csv",df_result)
+	CSV.write("resources/processed_partecipant_contact.csv",df_result)
 
-	get_contact_metadata(df_result)
+	#### Generate occupation and household for each contact
+
+	occupation_distribution = get_occupation_distribution(df_partecipant)
+	transform!(df_result,[:age] => x -> get_occupation(x,occupation_distribution), [:part_id,:cont_id,:hh_id,:cnt_hh_member,:cnt_otherplace_family,:cnt_otherplace_grandparents] => (a,b,c,d,e,f) -> get_household.(a,b,c,d,e,f) )
+	rename!(df_result, :part_id_cont_id_hh_id_cnt_hh_member_cnt_otherplace_family_cnt_otherplace_grandparents => :cnt_household_id)
+	rename!(df_result, :age_function => :cnt_occupation)
+
+	CSV.write("resources/processed_contact_with_occupation.csv",df_result)
+
 end
 
-function get_contact_metadata(df::DataFrame)
+function get_household(part_id,cnt_id,household_id,hh_member,family_cnt,grandparents_cnt)
+	if hh_member == "N" || family_cnt || grandparents_cnt
+		return household_id
+	else
+		return parse(Int,string(part_id,cnt_id)) # The concatenation of the 2 ids is used as key
+	end
+end
+
+function get_occupation(age,occupation_distribution)
+	result = []
+
+	print("\n")
+	for x in occupation_distribution
+		print(x,"\n")
+	end
+
+	for i in 1:length(age)
+		push!(result,get_occupation_single_person(age[i],occupation_distribution))
+	end
+	return result
+end
+
+"""
+	Get occupation based on the occupation vector
+	Special value return for age < 10 && age > 70
+"""
+function get_occupation_single_person(age::Int, occupation_distribution)
+	# Handle children
+	if age < CHILD_AGE
+		if age < INFANT
+			return OTHER
+		else
+			return SCHOOL
+		end
+	end
+
+	# Handle elder
+	if age > ELDER_AGE
+		return RETIRED #TODO: What to do with Housewife
+	end
+
+	index = floor(Int,age / 10)
+	prob_sum = rand()
+	for i in 1:6
+		if prob_sum < sum(occupation_distribution[index][1:i]) 
+			return i
+		end
+		prob_sum += occupation_distribution[index][i]
+	end
+end
+
+"""
+	Returns a DataFrame containing the number of contacts for each class and for each age interval  
+"""
+function get_contact_age_distribution(df::DataFrame)
 	min_age, max_age = extrema(df.age)
 	df_result = DataFrame(min_age = Int[],max_age = Int[],size = Int[],home_perc = Float32[],work_perc= Float32[], 
 				school_perc= Float32[],transport_perc= Float32[],leisure_perc= Float32[],otherplace_perc= Float32[])
 	
 	for i in range(0,next_10_multiple(max_age) - 10,step=10)
-		size,cnt_home,cnt_work,cnt_school,cnt_transport,cnt_leisure,cnt_otherplace = analyze_contact_per_age(df,i,i+10)
+		size,cnt_vector = get_contact_distribution_per_age(df,i,i+10)
+		
 		perc = 100/size
-		push!(df_result,(i,i+10,size,cnt_home*perc,cnt_work*perc,cnt_school*perc,cnt_transport*perc,
-									cnt_leisure*perc,cnt_otherplace*perc))
+		cnt_vector = perc .* cnt_vector
+		result = vcat(i,i+10,size,cnt_vector)
+
+		push!(df_result,result)
 	end
 
-	CSV.write("resources/processed_dataset_contact_metadata.csv",df_result)
+	return df_result
 end
 
-function analyze_contact_per_age(df::DataFrame, min_age::Int, max_age::Int)
+"""
+	Gets, for the given age interval, the number of contacts for each class
+"""
+function get_contact_distribution_per_age(df::DataFrame, min_age::Int, max_age::Int)
 	df_result = @from i in df begin
 				@where i.age > min_age && i.age < max_age
 				@select i
 				@collect DataFrame
 				end
-
-
-
+				
 	cnt_home = sum(df_result.cnt_home)
 	cnt_work = sum(df_result.cnt_work)
 	cnt_school = sum(df_result.cnt_school)
@@ -79,11 +177,35 @@ function analyze_contact_per_age(df::DataFrame, min_age::Int, max_age::Int)
 	cnt_leisure = sum(df_result.cnt_leisure)
 	cnt_otherplace = sum(df_result.cnt_otherplace)
 
-	return size(df_result,1),cnt_home,cnt_work,cnt_school,cnt_transport,cnt_leisure,cnt_otherplace
+	cnt_vector = [cnt_home,cnt_work,cnt_school,cnt_transport,cnt_leisure,cnt_otherplace]
 
+	return sum(cnt_vector),cnt_vector
 end
 
+"""
+	Return a multidimensional vector, where the position i contains the occupation distribution in the range i*10 - (i*10 + 10)
+"""
+#TODO: Some records don't have all the occupation, so the vector is smaller than 6. Must include the key in the data structure
+function get_occupation_distribution(df::DataFrame)
+	min_age = 10
+	max_age = 70
+	age_distribution = Array{Array{Float16},1}()
+	
+	for i in range(min_age,next_10_multiple(max_age) - 10,step=10)
+		push!(age_distribution, get_occupation_distribution_per_age(df,i,i+10))
+	end
 
+	return age_distribution
+end
 
+function get_occupation_distribution_per_age(df::DataFrame,min_age::Int,max_age::Int)
+	df_result = df |> @filter(_.part_age >= min_age && _.part_age < max_age) |>
+					  @groupby(_.part_occupation) |> 
+					  @map({ Key = key(_), num = length(_)}) |> 
+					  @orderby(_.Key) |>  
+					  DataFrame
 
-
+	occupation_vector = df_result[!,:num]
+	occupation_distribution = occupation_vector ./ sum(occupation_vector)
+	return occupation_distribution
+end
