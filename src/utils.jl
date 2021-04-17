@@ -4,10 +4,3 @@ function next_10_multiple(x::Int)
 	end
 	return x
 end
-
-"""
-	Return occupation distribution
-"""
-function get_occupation_distribution_index(age::Int)
-	return age >= 10 ? age / 10 : -1
-end

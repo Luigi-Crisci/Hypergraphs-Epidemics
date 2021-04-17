@@ -38,6 +38,7 @@ end
 """
 	Return exact age, or the Integer mean between min and max age
 """
+#TODO: When the age is -1, we just delete the record?
 function calculate_age(exact,min,max)
 	return exact != -1 ? exact : (min == -1 || max == -1 ? -1 : floor(Int,(min+max)/2) )
 end
@@ -68,7 +69,7 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 
 	df_result = @from r1 in df_partecipant begin
 				@join r2 in df_contact on r1.part_id equals r2.part_id
-				@select {r1.part_id,r1.hh_id,r2.cont_id,r1.part_age,r2.age,r1.part_gender,
+				@select {r1.part_id,r1.hh_id,r2.cont_id,r1.part_age,r2.age,r1.part_gender,r2.cnt_gender,
 						 r2.cnt_home,r2.cnt_work,r2.cnt_school,r2.cnt_transport,r2.cnt_leisure,
 						 r2.cnt_otherplace,r2.frequency_multi,r2.phys_contact,r2.duration_multi,
 						 r2.cnt_otherplace_family,r2.cnt_otherplace_grandparents,r2.cnt_hh_member}
@@ -81,28 +82,33 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 
 	occupation_distribution = get_occupation_distribution(df_partecipant)
 	transform!(df_result,[:age] => x -> get_occupation(x,occupation_distribution), [:part_id,:cont_id,:hh_id,:cnt_hh_member,:cnt_otherplace_family,:cnt_otherplace_grandparents] => (a,b,c,d,e,f) -> get_household.(a,b,c,d,e,f) )
-	rename!(df_result, :part_id_cont_id_hh_id_cnt_hh_member_cnt_otherplace_family_cnt_otherplace_grandparents => :cnt_household_id)
+	rename!(df_result, :part_id_cont_id_etc_function => :cnt_household_id)
 	rename!(df_result, :age_function => :cnt_occupation)
-
 	CSV.write("resources/processed_contact_with_occupation.csv",df_result)
+
+	### Append the resulted contact dataset to the partecipant one
+
+	df_contact_to_partecipant = df_result |> @select(:cont_id,:cnt_household_id,:cnt_occupation,:cnt_gender,:age) |>
+										   @rename(:cont_id => :part_id, :cnt_household_id => :hh_id, :age => :part_age, :cnt_occupation => :part_occupation, :cnt_gender => :part_gender) |>
+										   DataFrame
+	replace!(df_contact_to_partecipant.part_gender, missing => "NA")
+
+	append!(df_partecipant,df_contact_to_partecipant)
+	CSV.write("resources/processed_partecipant_and_contact.csv",df_partecipant)
+	
 
 end
 
 function get_household(part_id,cnt_id,household_id,hh_member,family_cnt,grandparents_cnt)
-	if hh_member == "N" || family_cnt || grandparents_cnt
+	if hh_member == "Y" || family_cnt || grandparents_cnt
 		return household_id
 	else
-		return parse(Int,string(part_id,cnt_id)) # The concatenation of the 2 ids is used as key
+		return string(part_id,cnt_id) # The concatenation of the 2 ids is used as key
 	end
 end
 
 function get_occupation(age,occupation_distribution)
 	result = []
-
-	print("\n")
-	for x in occupation_distribution
-		print(x,"\n")
-	end
 
 	for i in 1:length(age)
 		push!(result,get_occupation_single_person(age[i],occupation_distribution))
@@ -125,17 +131,25 @@ function get_occupation_single_person(age::Int, occupation_distribution)
 	end
 
 	# Handle elder
-	if age > ELDER_AGE
-		return RETIRED #TODO: What to do with Housewife
+	if age >= ELDER_AGE
+		return RETIRED #TODO: What to do with Housewife?
 	end
 
 	index = floor(Int,age / 10)
-	prob_sum = rand()
-	for i in 1:6
-		if prob_sum < sum(occupation_distribution[index][1:i]) 
-			return i
+	calculated_prob_sum = rand()
+	prob_sum = occupation_distribution[index][1][:num]
+	
+	# print("Age: ",age," - Index: ",index," - occupation_distribution size: ", length(occupation_distribution), "\n")
+	for i in 1:length(occupation_distribution[index])
+		#Handle cases where the float sum is not 1
+		if i == length(occupation_distribution[index]) - 1
+			return occupation_distribution[index][i][:Key]
 		end
-		prob_sum += occupation_distribution[index][i]
+		if calculated_prob_sum < prob_sum
+			return occupation_distribution[index][i][:Key]
+		end
+		calculated_prob_sum += occupation_distribution[index][i][:num]
+		prob_sum += occupation_distribution[index][i][:num]
 	end
 end
 
@@ -185,13 +199,10 @@ end
 """
 	Return a multidimensional vector, where the position i contains the occupation distribution in the range i*10 - (i*10 + 10)
 """
-#TODO: Some records don't have all the occupation, so the vector is smaller than 6. Must include the key in the data structure
 function get_occupation_distribution(df::DataFrame)
-	min_age = 10
-	max_age = 70
-	age_distribution = Array{Array{Float16},1}()
+	age_distribution = Array{Array{Any},1}()
 	
-	for i in range(min_age,next_10_multiple(max_age) - 10,step=10)
+	for i in range(CHILD_AGE,next_10_multiple(ELDER_AGE) - 10,step=10)
 		push!(age_distribution, get_occupation_distribution_per_age(df,i,i+10))
 	end
 
@@ -205,7 +216,7 @@ function get_occupation_distribution_per_age(df::DataFrame,min_age::Int,max_age:
 					  @orderby(_.Key) |>  
 					  DataFrame
 
-	occupation_vector = df_result[!,:num]
-	occupation_distribution = occupation_vector ./ sum(occupation_vector)
-	return occupation_distribution
+	df_result[!,:num] = df_result[!,:num] ./ sum(df_result[!,:num])
+
+	return Tables.rowtable(df_result)
 end
