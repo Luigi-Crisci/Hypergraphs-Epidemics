@@ -38,7 +38,6 @@ end
 """
 	Return exact age, or the Integer mean between min and max age
 """
-#TODO: When the age is -1, we just delete the record?
 function calculate_age(exact,min,max)
 	return exact != -1 ? exact : (min == -1 || max == -1 ? -1 : floor(Int,(min+max)/2) )
 end
@@ -135,14 +134,14 @@ function get_occupation_single_person(age::Int, occupation_distribution)
 		return RETIRED #TODO: What to do with Housewife?
 	end
 
-	index = floor(Int,age / 10)
+	index = floor(Int,age / 10) - 1
 	calculated_prob_sum = rand()
 	prob_sum = occupation_distribution[index][1][:num]
 	
 	# print("Age: ",age," - Index: ",index," - occupation_distribution size: ", length(occupation_distribution), "\n")
 	for i in 1:length(occupation_distribution[index])
 		#Handle cases where the float sum is not 1
-		if i == length(occupation_distribution[index]) - 1
+		if i == length(occupation_distribution[index])
 			return occupation_distribution[index][i][:Key]
 		end
 		if calculated_prob_sum < prob_sum
@@ -183,7 +182,7 @@ function get_contact_distribution_per_age(df::DataFrame, min_age::Int, max_age::
 				@select i
 				@collect DataFrame
 				end
-				
+	
 	cnt_home = sum(df_result.cnt_home)
 	cnt_work = sum(df_result.cnt_work)
 	cnt_school = sum(df_result.cnt_school)
