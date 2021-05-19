@@ -36,12 +36,6 @@ function join_contact_common_and_extra_datasets(common_dataset::String,extra_dat
 	return df_result
 end
 
-"""
-	Return exact age, or the Integer mean between min and max age
-"""
-function calculate_age(exact,min,max)
-	return exact != -1 ? exact : (min == -1 || max == -1 ? -1 : floor(Int,(min+max)/2) )
-end
 
 """
 	Join partecipant and contact datasets, and gets some metadata
@@ -50,10 +44,12 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	df_partecipant = join_partecipant_common_and_extra_datasets(partecipand_dataset,partecipant_extra_dataset)
 	df_contact = join_contact_common_and_extra_datasets(contact_dataset,contact_extra_dataset)
 
+	#TODO: collapse all this replaces into a single function
 	replace!(df_contact.cnt_age_exact, missing => -1)
 	replace!(df_contact.cnt_age_est_max, missing => -1)
 	replace!(df_contact.cnt_age_est_min, missing => -1)
 	replace!(df_contact.cnt_hh_member, missing => "N")
+	replace!(df_partecipant.part_occupation, RETIRED => HOME) #Replace "retired" with "working"
 	
 	df_contact.cnt_home = convert.(Int,df_contact.cnt_home)
 	df_contact.cnt_work = convert.(Int,df_contact.cnt_work)
@@ -65,7 +61,6 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	
 	transform!(df_contact, [:cnt_age_exact,:cnt_age_est_min,:cnt_age_est_max] => ByRow(calculate_age) => :age)
 	
-
 	df_result = @from r1 in df_partecipant begin
 				@join r2 in df_contact on r1.part_id equals r2.part_id
 				@select {r1.part_id,r1.hh_id,r2.cont_id,r1.part_age,r2.age,r1.part_gender,r1.part_occupation,r2.cnt_gender,
@@ -78,7 +73,6 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	CSV.write("resources/processed_partecipant_contact.csv",df_result)
 
 	#### Generate occupation and household for each contact
-
 	occupation_distribution = get_occupation_distribution(df_partecipant)
 	
 	transform!(df_result,[:age] => (x -> get_occupation(x,occupation_distribution)) => :cnt_occupation, 
@@ -86,10 +80,9 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	CSV.write("resources/processed_contact_with_occupation.csv",df_result)
 
 	### Append the resulted contact dataset to the partecipant one
-
 	df_contact_to_partecipant = df_result |> @select(:cont_id,:cnt_household_id,:cnt_occupation,:cnt_gender,:age) |>
-										   @rename(:cont_id => :part_id, :cnt_household_id => :hh_id, :age => :part_age, :cnt_occupation => :part_occupation, :cnt_gender => :part_gender) |>
-										   DataFrame
+										   	 @rename(:cont_id => :part_id, :cnt_household_id => :hh_id, :age => :part_age, :cnt_occupation => :part_occupation, :cnt_gender => :part_gender) |>
+										   	 DataFrame
 	replace!(df_contact_to_partecipant.part_gender, missing => "NA")
 
 	append!(df_partecipant,df_contact_to_partecipant)
@@ -117,7 +110,7 @@ end
 
 """
 	Get occupation based on the occupation vector
-	Special value return for age < 10 && age > 70
+	Special value return for age < CHILD_AGE && age > ELDER_AGE
 """
 function get_occupation_single_person(age::Int, occupation_distribution)
 	# Handle children

@@ -3,7 +3,6 @@ module BelgianDataset
 using CSV
 using DataFrames
 using Query
-using Missings
 using Tables
 using Dates
 using DataStructures
