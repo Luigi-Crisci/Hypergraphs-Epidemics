@@ -68,10 +68,10 @@ households = BelgianDataset.start_simulation(
 
 
 # ########### Validation ################
-using JuliaDB, BelgianDataset, Dates, SimpleHypergraphs, CSV, DataFrames, DataFramesMeta, Query
+using JuliaDB, BelgianDataset, Dates, SimpleHypergraphs, CSV, DataFrames, Query
 
 
-df, intervals, user2vertex, loc2he = BelgianDataset.generate_model_data(
+df_generated_model, intervals, user2vertex, loc2he = BelgianDataset.generate_model_data(
                                         "resources/generated_contact.csv",
                                         [:Time, :Id, :position], #Column list
                                         :Id, #userid column
@@ -82,15 +82,17 @@ df, intervals, user2vertex, loc2he = BelgianDataset.generate_model_data(
                                         δ = Dates.Millisecond(600000), # minutes
                                         # limit = 10000 # limit
 )
+df_partecipant = CSV.File("resources/processed_partecipant_and_contact.csv") |> DataFrame
 
+#### Param config ####
 δ = Dates.Millisecond(600000)
+users = unique(df_generated_model.userid)
+t = table(df_generated_model,pkey = :userid)
+contact_num_dict = Dict{Int,Int}()
+
+lk = ReentrantLock()
 current_user_count = Threads.Atomic{Int}(0)
-users = unique(df.userid)
-t = table(df,pkey = :userid)
-
-current_dict = Dict{Int,Int}()
-
-Threads.@threads for user in users # For all users
+for user in users # For all users
     
     Threads.atomic_add!(current_user_count,1)
     println("Current user: $current_user_count")
@@ -111,30 +113,17 @@ Threads.@threads for user in users # For all users
             end
         end
     end
-    push!(current_dict, user => cont) # Update contact num of this user
+
+    lock(lk) do
+        push!(contact_num_dict, user => cont) # Update contact num of this user
+    end
 end
 
 
+sorted_contact_num_dict = sort(contact_num_dict)
+sorted_df = sort(df_generated_model)
 
-
-vcat(fill(current_dict))
-
-ids = collect(keys(sorted))
-occupations = []
-ages = []
-
-sorted = sort(current_dict)
-sorted_df = sort(df)
-
-sorted_df.part_occupation
-
-for id in ids
-    df_tmp = df |> @filter(_.part_id == id) |> DataFrame
-    push!(occupations,df_tmp.part_occupation[1])
-    push!(ages,df_tmp.part_age[1])
-end
-
-contact_num = DataFrame(id = collect(keys(sorted)), num_contact = collect(values(sorted)), age = sorted_df.part_age, occupation = sorted_df.part_occupation)
+contact_num = DataFrame(id = collect(keys(sorted_contact_num_dict)), num_contact = collect(values(sorted_contact_num_dict)), age = sorted_df.part_age, occupation = sorted_df.part_occupation)
 
 CSV.write("contact_num.csv",contact_num)
 
