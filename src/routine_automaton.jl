@@ -23,7 +23,7 @@ function _worker_next_step(time::DateTime, person::Person)
     elseif state == 6 # Leisure place
         p = rand()
 		person.time_spent_out += 1
-        if p > _come_back_from_leisure(time)
+        if p > _come_back_from_leisure(person.time_spent_out)
             person.movement_state = 5
 			person.time_spent_out = 0
         end
@@ -60,7 +60,7 @@ function _student_next_step(time::DateTime, person::Person)
     elseif state == 6 # Leisure place
         p = rand()
 		person.time_spent_out += 1
-        if p < _come_back_from_leisure(time)
+        if p < _come_back_from_leisure(person.time_spent_out)
             person.movement_state = 5
 			person.time_spent_out = 0
         end
@@ -120,7 +120,7 @@ function _home_go_leisure(time::DateTime)
 		μ = mean([DAY_START, DAY_MEDIAN])
 		σ = 0.8
 	elseif _is_afternoon(time)
-		μ = mean([DAY_MEDIAN, WORK_ENDS])
+		μ = mean([DAY_MEDIAN, WORK_END])
 		σ = 0.8
 	elseif _is_evening(time)
 		μ = mean([WORK_END, DAY_END])

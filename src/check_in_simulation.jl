@@ -8,7 +8,7 @@ end
 
 function start_simulation(dataset_path::String, parameters::Contact_simulation_options)
 	# Create the check-in writer
-	event_writer = EventWriter("generated_contact.csv")
+	event_writer = EventWriter("resources/generated_contact.csv")
 	# Define simulation start time
 	simulation_time = DateTime(0) + Dates.Hour(DAY_START)
 	simulation_time_end = DateTime(0000,1,2) #TODO: 1 days, just to try

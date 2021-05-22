@@ -36,7 +36,6 @@ function join_contact_common_and_extra_datasets(common_dataset::String,extra_dat
 	return df_result
 end
 
-
 """
 	Join partecipant and contact datasets, and gets some metadata
 """
