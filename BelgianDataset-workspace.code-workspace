@@ -6,7 +6,7 @@
 	],
 	"settings": {
 		"julia.additionalArgs": [
-			"--threads=8"
+			"--threads=12"
 		]
 	}
 }

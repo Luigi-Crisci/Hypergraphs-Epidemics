@@ -23,16 +23,13 @@ function _worker_next_step(time::DateTime, person::Person)
     elseif state == 6 # Leisure place
         p = rand()
 		person.time_spent_out += 1
-        if p > _come_back_from_leisure(person.time_spent_out)
+        if p < _come_back_from_leisure(person.time_spent_out)
             person.movement_state = 5
 			person.time_spent_out = 0
         end
     end
 
-    if state != person.movement_state
-        return true
-    end
-    return false
+    return state != person.movement_state
 end
 
 function _student_next_step(time::DateTime, person::Person)
@@ -66,10 +63,7 @@ function _student_next_step(time::DateTime, person::Person)
         end
     end
 
-    if state != person.movement_state
-        return true
-    end
-    return false
+    return state != person.movement_state
 end
 
 function _home_next_step(time::DateTime, person::Person)
@@ -94,10 +88,7 @@ function _home_next_step(time::DateTime, person::Person)
         end
     end
 
-    if state != person.movement_state
-        return true
-    end
-    return false
+    return state != person.movement_state
 end
 
 

@@ -14,27 +14,33 @@ function start_simulation(dataset_path::String, parameters::Contact_simulation_o
 	simulation_time_end = DateTime(0000,1,2) #TODO: 1 days, just to try
 	households = get_households(dataset_path,parameters)
 
+	count = 0
 	while simulation_time < simulation_time_end
-		for household in households 
+		count = 0
+		for household in households
 			for worker in household.workers
 				_simulate_worker(worker,household.id,parameters,simulation_time,event_writer)
+				count+=1
 			end
 			for student in household.students
 				_simulate_student(student,household.id,parameters,simulation_time,event_writer)
+				count+=1
 			end
 			for other in household.homes
 				_simulate_home(other,household.id,parameters,simulation_time,event_writer) 
+				count+=1
 			end
 			write_events(event_writer)
 
 		end
 
 		simulation_time += Dates.Hour(1)
-		if Dates.hour(simulation_time) > DAY_END
+		if Dates.hour(simulation_time) ==  0 
 			simulation_time += Dates.Hour(DAY_START)
 		end
 	end
 
+	println("Processed people: $count")
 	close_writer(event_writer)
 end
 
@@ -92,8 +98,7 @@ function _simulate_home(home::Person, household_id::Int,parameters::Contact_simu
 	if _home_next_step(time,home)
 		if home.movement_state == 1 # Home
 			event = Event(home.id,household_id,PLACE_HOME,time)
-		end 
-		#TODO: Add transport state
+		end
 		if home.movement_state == 2 # leisure
 			leisure_place = rand(1:parameters.leisure_place_num)
 			event = Event(home.id,leisure_place,PLACE_LEISURE,time)

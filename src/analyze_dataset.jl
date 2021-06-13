@@ -48,7 +48,7 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	replace!(df_contact.cnt_age_est_max, missing => -1)
 	replace!(df_contact.cnt_age_est_min, missing => -1)
 	replace!(df_contact.cnt_hh_member, missing => "N")
-	replace!(df_partecipant.part_occupation, RETIRED => HOME) #Replace "retired" with "working"
+	replace!(df_partecipant.part_occupation, RETIRED => HOME) #Replace "retired" with "home"
 	
 	df_contact.cnt_home = convert.(Int,df_contact.cnt_home)
 	df_contact.cnt_work = convert.(Int,df_contact.cnt_work)
@@ -87,6 +87,11 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	append!(df_partecipant,df_contact_to_partecipant)
 	CSV.write("resources/processed_partecipant_and_contact.csv",df_partecipant)
 	
+	### Normalize indicies
+	count_id = -1
+	df_partecipant.part_id = map(i -> begin count_id+=1; return count_id end, df_partecipant.part_id)
+	CSV.write("resources/processed_partecipant_and_contact_normalized.csv",df_partecipant)
+
 
 end
 
