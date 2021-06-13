@@ -36,6 +36,7 @@ include("person.jl")
 include("routine_automaton.jl")
 include("check_in_simulation.jl")
 include("analyze_dataset.jl")
+include("contact_generation.jl")
 
 include("HGEpidemics/src/dataset_stats/utils.jl")
 include("HGEpidemics/src/utils/loader.jl")

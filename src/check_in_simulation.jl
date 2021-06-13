@@ -1,11 +1,3 @@
-mutable struct Contact_simulation_options
-	work_place_num::Int
-	school_place_num::Int
-	transport_place_num::Int
-	leisure_place_num::Int
-end
-
-
 function start_simulation(dataset_path::String, parameters::Contact_simulation_options)
 	# Create the check-in writer
 	event_writer = EventWriter("resources/generated_contact.csv")

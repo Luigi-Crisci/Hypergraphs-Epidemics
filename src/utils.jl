@@ -1,3 +1,11 @@
+mutable struct Contact_simulation_options
+	work_place_num::Int
+	school_place_num::Int
+	transport_place_num::Int
+	leisure_place_num::Int
+end
+
+
 function next_10_multiple(x::Int)
 	while x % 10 != 0
 		x = x + 1

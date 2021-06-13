@@ -189,7 +189,10 @@ contact_num = CSV.File("contact_num_1_700_200_8000_900_.csv") |> DataFrame
 
 # @time distr = BelgianDataset.evaluate_direct_contacts_distribution(intervals,df,Dates.Millisecond(600000))
 
-
+BelgianDataset.start_contact_generation(
+    "resources/processed_partecipant_and_contact_normalized.csv",
+    parameter
+)
 # h = BelgianDataset.generatehg!(
 #         nothing, # Generate a new Hypergraph
 #         df, # Check in dataset
