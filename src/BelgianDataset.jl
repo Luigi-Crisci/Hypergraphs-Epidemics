@@ -9,6 +9,9 @@ using DataStructures
 using Distributions
 using SimpleHypergraphs
 using Statistics
+using Combinatorics
+using Pipe: @pipe
+using Random
 
 export Person
 export Household
@@ -28,6 +31,8 @@ export next_10_multiple
 export generate_model_data
 export generatehg!
 export evaluate_direct_contacts_distribution
+
+export get_dataframe_subset
 
 include("Constants.jl")
 include("event_writer.jl")

@@ -11,6 +11,11 @@ const CHILD_AGE = 20
 const INFANT = 3
 const ELDER_AGE = 70
 
+# Age categories - contact generation
+const PRE_SCHOOL_LIMIT = 6
+const PRIMARY_SCHOOL_LIMIT = 12
+const SECONDARY_SCHOOL_LIMIT = 18
+
 # Time interval
 const DAY_START = 7
 const DAY_MEDIAN = 12

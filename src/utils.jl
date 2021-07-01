@@ -49,3 +49,37 @@ end
 function calculate_age(exact,min,max)
 	return exact != -1 ? exact : (min == -1 || max == -1 ? -1 : floor(Int,(min+max)/2) )
 end
+
+
+
+function is_student(p)
+	return p.part_occupation == SCHOOL
+end
+
+function is_worker(p)
+	return p.part_occupation == WORKING
+end
+
+function is_home(p)
+	return p.part_occupation == HOME
+end
+
+# function divide_students_by_age(students)
+# 	pre_school_students = []
+# 	primary_students = []
+# 	secondary_students = []
+# 	higher_students = []
+# 	for student in students
+# 		if student.age <= PRE_SCHOOL_LIMIT
+# 			push!(pre_school_students,student)
+# 		elseif student.age <= PRIMARY_SCHOOL_LIMIT
+# 			push!(primary_students,student)
+# 		elseif student.age <= SECONDARY_SCHOOL_LIMIT
+# 			push!(secondary_students,student)
+# 		else
+# 			push!(higher_students,student)
+# 		end
+# 	end
+
+# 	return pre_school_students,primary_students, secondary_students, higher_students
+# end

@@ -99,13 +99,13 @@ function _simulate_home(home::Person, household_id::Int,parameters::Contact_simu
 	end
 end
 
-function get_households(dataset_path::String,parameters::Contact_simulation_options)::Array{Household,1}
-	df_nodes = CSV.File(dataset_path) |> DataFrame
+function get_households(df_nodes::DataFrame,parameters::Contact_simulation_options)::Array{Household,1}
 	households = Array{Household,1}()
-
 	gdf_households = groupby(df_nodes, :hh_id)
 	
-	for household_record in gdf_households
+	lk = ReentrantLock()
+	Threads.@threads for i in 1:length(gdf_households)
+		household_record = gdf_households[i]
 		id = household_record.part_id[1]
 		household = Household(id,size(household_record,1))
 		for person_record in eachrow(household_record)
@@ -121,9 +121,16 @@ function get_households(dataset_path::String,parameters::Contact_simulation_opti
 				push!(household.homes,person)
 			end
 		end
-		push!(households,household)
+		lock(lk) do 
+			push!(households,household)
+		end
 	end
 	return households
+end
+
+function get_households(dataset_path::String,parameters::Contact_simulation_options)::Array{Household,1}
+	df_nodes = CSV.File(dataset_path) |> DataFrame
+	return get_households(df_nodes,parameters)
 end
 
 function create_student(parameters::Contact_simulation_options,student_record)

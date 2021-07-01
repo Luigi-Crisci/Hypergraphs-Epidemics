@@ -57,8 +57,11 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	df_contact.cnt_leisure = convert.(Int,df_contact.cnt_leisure)
 	df_contact.cnt_otherplace = convert.(Int,df_contact.cnt_otherplace)
 
-	
+	#Calculate age for the records that has at least the age interval
 	transform!(df_contact, [:cnt_age_exact,:cnt_age_est_min,:cnt_age_est_max] => ByRow(calculate_age) => :age)
+	#Remove the record for which is impossible to infer the age
+	df_contact = df_contact |> @filter(_.age > 0) |> DataFrame 
+
 	
 	df_result = @from r1 in df_partecipant begin
 				@join r2 in df_contact on r1.part_id equals r2.part_id
@@ -229,3 +232,51 @@ function set_occupation_for_record_without(df::DataFrame)
 
 	transform!(df,[:part_age,:part_occupation] => ByRow(filter) => :part_occupation)
 end
+
+
+function get_dataframe_subset(df::DataFrame, num_rows::Int, occupation_proportion::Array{Int},seed::Int)
+	if sum(occupation_proportion) != 100
+		throw(ArgumentError("occupation proportion must cover all the rows space"))
+	end
+
+	num_workers = occupation_proportion[1] * num_rows / 100
+	num_students = occupation_proportion[2] * num_rows / 100
+	num_homes = occupation_proportion[3] * num_rows / 100
+
+	shuffled_indices = randperm(MersenneTwister(seed),size(df,1))
+
+	students_added = 0
+	workers_added = 0
+	homes_added = 0
+	subset_rows = []
+	for i in shuffled_indices
+		record = df[i,:]
+		if length(subset_rows) == num_rows
+			break
+		end
+
+		if is_student(record) && students_added < num_students
+			push!(subset_rows,i)
+			students_added += 1
+		elseif is_worker(record) && workers_added < num_workers
+			push!(subset_rows,i)
+			workers_added += 1
+		elseif is_home(record) && homes_added < num_homes
+			push!(subset_rows,i)
+			homes_added += 1
+		end
+	end
+
+	if length(subset_rows) != num_rows
+		throw(ArgumentError("The size or the proportion of the records cannot be applied to this dataframe. 
+										Try to reduce the number of rows or to change the target proportions"))
+	end
+
+	return df[subset_rows,:]
+end
+
+# function shuffle_df(df::DataFrame,key::Symbol,seed::Int)
+# 	return @pipe df |> groupby(_, key) |>
+#            _[shuffle(1:end)] |>
+#            combine(_[1:end], :)
+# end
