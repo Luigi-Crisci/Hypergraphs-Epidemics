@@ -22,12 +22,16 @@ function _write_header(file)
 end
 
 function add_event(event_writer::EventWriter,event::Event)
+	#FIXME: Just a way to handle null event. Must be substituted by a better structure
+	if event.id_node == -1
+		return 
+	end
 	enqueue!(event_writer.queue,event)
 end
 
 function write_events(event_writer::EventWriter)
 	for event in event_writer.queue
-		write(event_writer.file,"$(event.time),$(event.id_node),$(event.position_node)$(event.position_type)\n")
+		write(event_writer.file,"$(event.time),$(event.id_node),$(event.position_node)\n")
 		dequeue!(event_writer.queue)
 	end
 end
