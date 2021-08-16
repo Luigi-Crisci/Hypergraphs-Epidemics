@@ -11,7 +11,7 @@ function _worker_next_step(time::DateTime, person::Person)
         person.movement_state = 2
     elseif state == 2 # Transport before work state
         person.movement_state = 3
-    elseif state == 3 && is_working_end_time(time) # Working state
+    elseif state == 3 && _is_working_end_time(time) # Working state
         person.movement_state = 4
     elseif state == 4 # Transport after work state
         person.movement_state = 5
@@ -45,7 +45,7 @@ function _student_next_step(time::DateTime, person::Person)
         person.movement_state = 2
     elseif state == 2 # Transport before work state
         person.movement_state = 3
-    elseif state == 3 && is_school_end_time(time) # Working state
+    elseif state == 3 && _is_school_end_time(time) # Working state
         person.movement_state = 4
     elseif state == 4 # Transport after work state
         person.movement_state = 5

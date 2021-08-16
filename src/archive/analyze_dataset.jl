@@ -11,7 +11,7 @@ function join_partecipant_common_and_extra_datasets(common_dataset::String,extra
 				@collect DataFrame
 	end
 
-	replace!(df_result.part_occupation, JOB_SEEKING => HOME,  missing => 6) # We handle joob seeking people as the ones staying at home
+	replace!(df_result.part_occupation, JOB_SEEKING => UNEMPLOYED,  missing => 6) # We handle joob seeking people as the ones staying at home
 	set_occupation_for_record_without(df_result)
 
 	CSV.write("resources/processed_partecipant_extra.csv",df_result)
@@ -48,7 +48,7 @@ function analyze_contact_data(partecipand_dataset::String,partecipant_extra_data
 	replace!(df_contact.cnt_age_est_max, missing => -1)
 	replace!(df_contact.cnt_age_est_min, missing => -1)
 	replace!(df_contact.cnt_hh_member, missing => "N")
-	replace!(df_partecipant.part_occupation, RETIRED => HOME) #Replace "retired" with "home"
+	replace!(df_partecipant.part_occupation, RETIRED => UNEMPLOYED) #Replace "retired" with "home"
 	
 	df_contact.cnt_home = convert.(Int,df_contact.cnt_home)
 	df_contact.cnt_work = convert.(Int,df_contact.cnt_work)
@@ -123,7 +123,7 @@ function get_occupation_single_person(age::Int, occupation_distribution)
 	# Handle children
 	if age < CHILD_AGE
 		if age < INFANT
-			return HOME
+			return UNEMPLOYED
 		else
 			return SCHOOL
 		end
@@ -131,7 +131,7 @@ function get_occupation_single_person(age::Int, occupation_distribution)
 
 	# Handle elder
 	if age >= ELDER_AGE
-		return HOME
+		return UNEMPLOYED
 	end
 
 	index = floor(Int,age / 10) - 1
@@ -158,7 +158,7 @@ function get_contact_age_distribution(df::DataFrame)
 	df_result = DataFrame(min_age = Int[],max_age = Int[],size = Int[],home_perc = Float32[],work_perc= Float32[], 
 				school_perc= Float32[],transport_perc= Float32[],leisure_perc= Float32[],otherplace_perc= Float32[])
 	
-	for i in range(0,next_10_multiple(max_age) - 10,step=10)
+	for i in range(0,_next_10_multiple(max_age) - 10,step=10)
 		size,cnt_vector = get_contact_distribution_per_age(df,i,i+10)
 		
 		perc = 100/size
@@ -196,7 +196,7 @@ end
 function get_occupation_distribution(df::DataFrame,occupation_filter::Function)
 	age_distribution = Array{Array{Any},1}()
 	
-	for i in range(CHILD_AGE,next_10_multiple(ELDER_AGE) - 10,step=10)
+	for i in range(CHILD_AGE,_next_10_multiple(ELDER_AGE) - 10,step=10)
 		push!(age_distribution, get_occupation_distribution_per_age(df,i,i+10,occupation_filter))
 	end
 
@@ -241,13 +241,13 @@ function get_dataframe_subset(df::DataFrame, num_rows::Int, occupation_proportio
 
 	num_workers = occupation_proportion[1] * num_rows / 100
 	num_students = occupation_proportion[2] * num_rows / 100
-	num_homes = occupation_proportion[3] * num_rows / 100
+	num_unemployeds = occupation_proportion[3] * num_rows / 100
 
 	shuffled_indices = randperm(MersenneTwister(seed),size(df,1))
 
 	students_added = 0
 	workers_added = 0
-	homes_added = 0
+	unemployeds_added = 0
 	subset_rows = []
 	for i in shuffled_indices
 		record = df[i,:]
@@ -261,9 +261,9 @@ function get_dataframe_subset(df::DataFrame, num_rows::Int, occupation_proportio
 		elseif is_worker(record) && workers_added < num_workers
 			push!(subset_rows,i)
 			workers_added += 1
-		elseif is_home(record) && homes_added < num_homes
+		elseif is_home(record) && unemployeds_added < num_unemployeds
 			push!(subset_rows,i)
-			homes_added += 1
+			unemployeds_added += 1
 		end
 	end
 
@@ -274,9 +274,3 @@ function get_dataframe_subset(df::DataFrame, num_rows::Int, occupation_proportio
 
 	return df[subset_rows,:]
 end
-
-# function shuffle_df(df::DataFrame,key::Symbol,seed::Int)
-# 	return @pipe df |> groupby(_, key) |>
-#            _[shuffle(1:end)] |>
-#            combine(_[1:end], :)
-# end

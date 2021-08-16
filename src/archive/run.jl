@@ -1,16 +1,9 @@
-using BelgianDataset
-using CSV, DataFrames, Query
-using Dates
-using SimpleHypergraphs
-
-
-
-BelgianDataset.analyze_contact_data(
-    "resources/2010_Willem_BELGIUM_participant_common.csv",
-    "resources/2010_Willem_BELGIUM_participant_extra.csv",
-    "resources/2010_Willem_BELGIUM_contact_common.csv",
-    "resources/2010_Willem_BELGIUM_contact_extra.csv",
-)
+# BelgianDataset.analyze_contact_data(
+#     "resources/2010_Willem_BELGIUM_participant_common.csv",
+#     "resources/2010_Willem_BELGIUM_participant_extra.csv",
+#     "resources/2010_Willem_BELGIUM_contact_common.csv",
+#     "resources/2010_Willem_BELGIUM_contact_extra.csv",
+# )
 
 # # df_partecipant = BelgianDataset.join_partecipant_common_and_extra_datasets(
 # #     "resources/2010_Willem_BELGIUM_participant_common.csv",
@@ -193,16 +186,17 @@ BelgianDataset.analyze_contact_data(
 
 # @time distr = BelgianDataset.evaluate_direct_contacts_distribution(intervals,df,Dates.Millisecond(600000))
 
-parameter = Contact_simulation_options(20, 3, 8000 , 900)
 
-df = CSV.File("resources/processed_partecipant_and_contact_normalized.csv") |> DataFrame
+# df = CSV.File("resources/processed_partecipant_and_contact_normalized.csv") |> DataFrame
 
-subset_df = get_dataframe_subset(df,5000,[70,10,20],1)
+# subset_df = get_dataframe_subset(df,5000,[70,10,20],1)
+# parameter = Contact_simulation_options(20, 3, 8000 , 100,31)
 
-BelgianDataset.start_contact_generation(
-    subset_df,
-    parameter
-)
+# BelgianDataset.start_contact_generation(
+#     subset_df,
+#     parameter
+# )
+
 
 # h = BelgianDataset.generatehg!(
 #         nothing, # Generate a new Hypergraph
