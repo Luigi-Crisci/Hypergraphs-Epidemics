@@ -1,7 +1,7 @@
 # Occupations 
 const WORKING = 1
 const RETIRED = 2
-const HOME = 3
+const UNEMPLOYED = 3
 const JOB_SEEKING = 4
 const SCHOOL = 5
 const OTHER = 6
@@ -10,6 +10,7 @@ const OTHER = 6
 const CHILD_AGE = 20
 const INFANT = 3
 const ELDER_AGE = 70
+const RETIREMENT_AGE = 65
 
 # Age categories - contact generation
 const PRE_SCHOOL_LIMIT = 6
