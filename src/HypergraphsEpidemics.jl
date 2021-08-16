@@ -29,7 +29,7 @@ include("RoutineAutomaton.jl")
 include("DatasetGeneration.jl")
 include("Simulation.jl")
 
-include("HGEpidemics/src/HGEpidemics.jl")
+include("../deps/HGEpidemics/src/HGEpidemics.jl")
 
 using .HGEpidemics
 
