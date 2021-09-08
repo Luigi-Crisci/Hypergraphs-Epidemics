@@ -1,4 +1,4 @@
-using BelgianDataset
+using HypergraphsEpidemics
 using CSV, DataFrames, Query
 using Dates
 using SimpleHypergraphs

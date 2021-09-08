@@ -263,7 +263,7 @@ function generate_dataset(output_path::String, num_people::Int, num_company::Int
 	μ = 2.5 # Medium househol size
 	σ = 0.5 # Minum size 1
 	households_size_distribution = Normal(μ,σ)
-	age_difference = 15
+	age_difference = 15 # max age difference between two person in a household
 	remaining_people = num_people
 
 	Adult = employeds ∪ unemployeds
