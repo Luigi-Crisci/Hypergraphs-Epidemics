@@ -1,26 +1,32 @@
-function start_simulation(dataset_path::String, parameters::Contact_simulation_options)
+function start_simulation(dataset_path::String, output_path::String, parameters_path::String, info_path::String)
 	# Create the check-in writer
-	event_writer = EventWriter("resources/generated_contact.csv")
+	event_writer = EventWriter(output_path)
+	#Get parameters
+	parameters = JSON.parsefile(parameters_path)
+	info = JSON.parsefile(info_path)
+
 	# Define simulation start time
 	simulation_time_start = DateTime(2021,1,1,DAY_START)
 	simulation_time_end = simulation_time_start + Dates.Day(31)
 	households = _read_household_dataset(dataset_path)
 
-	leisure_places = rand(0:75,15) # A fraction of all the workplace are leisure place
+	# Available because workplaces always starts at id 1
+	leisure_places = rand(info[WORKPLACES_START_ID]:info[WORKPLACES_START_ID] + parameters["workplaces"],
+									 parameters["leisures"]) 
 	count = 0
 	while simulation_time_start < simulation_time_end
 		count = 0
 		for household in households
 			for worker in household.workers
-				_simulate_worker(worker,household.id,parameters,simulation_time_start,event_writer,leisure_places)
+				_simulate_worker(worker,household.id,parameters,info,simulation_time_start,event_writer,leisure_places)
 				count+=1
 			end
 			for student in household.students
-				_simulate_student(student,household.id,parameters,simulation_time_start,event_writer,leisure_places)
+				_simulate_student(student,household.id,parameters,info,simulation_time_start,event_writer,leisure_places)
 				count+=1
 			end
 			for other in household.unemployeds
-				_simulate_home(other,household.id,parameters,simulation_time_start,event_writer,leisure_places) 
+				_simulate_home(other,household.id,parameters,info,simulation_time_start,event_writer,leisure_places) 
 				count+=1
 			end
 			write_events(event_writer)
@@ -36,7 +42,7 @@ function start_simulation(dataset_path::String, parameters::Contact_simulation_o
 	close_writer(event_writer)
 end
 
-function _simulate_worker(worker::Person, household_id::Int,parameters::Contact_simulation_options,time,event_writer::EventWriter,leisure_places)
+function _simulate_worker(worker::Person, household_id::Int,parameters,info,time,event_writer::EventWriter,leisure_places)
 	# Handle morning
 	if worker.movement_state == 1
 		add_event(event_writer,Event(worker.id,household_id,PLACE_HOME,time - Dates.Hour(1))) # They wake up 1 hour before work
@@ -47,7 +53,7 @@ function _simulate_worker(worker::Person, household_id::Int,parameters::Contact_
 			event = Event(worker.id,household_id,PLACE_HOME,time)
 		end
 		if worker.movement_state == 2 # Transport
-			event = Event(worker.id,rand(1:parameters.transport_place_num),PLACE_TRANSPORT,time)
+			event = Event(worker.id,rand(info[TRANSPORTS_START_ID]:info[WORKPLACES_START_ID] + parameters["transports"]),PLACE_TRANSPORT,time)
 		end
 		if worker.movement_state == 3 # Work
 			# Introduce an event each 4 hours
@@ -59,7 +65,7 @@ function _simulate_worker(worker::Person, household_id::Int,parameters::Contact_
 			event = Event(-1,-1,-1,DateTime(0000)) #FIXME: Null event, this can be easily avoided
 		end
 		if worker.movement_state == 4 # Transport
-			event = Event(worker.id,rand(1:parameters.transport_place_num),PLACE_TRANSPORT,time)
+			event = Event(worker.id,rand(info[TRANSPORTS_START_ID]:info[TRANSPORTS_START_ID] + parameters["transports"]),PLACE_TRANSPORT,time)
 		end
 		if worker.movement_state == 5 # Home
 			event = Event(worker.id,household_id,PLACE_HOME,time)
@@ -73,7 +79,7 @@ function _simulate_worker(worker::Person, household_id::Int,parameters::Contact_
 	end
 end
 
-function _simulate_student(student::Person, household_id::Int,parameters::Contact_simulation_options,time,event_writer::EventWriter,leisure_places)
+function _simulate_student(student::Person, household_id::Int,parameters,info,time,event_writer::EventWriter,leisure_places)
 	# Handle morning 
 	if student.movement_state == 1
 		add_event(event_writer,Event(student.id,household_id,PLACE_HOME,time - Dates.Hour(1)))
@@ -84,13 +90,13 @@ function _simulate_student(student::Person, household_id::Int,parameters::Contac
 			event = Event(student.id,household_id,PLACE_HOME,time)
 		end
 		if student.movement_state == 2 # Transport
-			event = Event(student.id,rand(1:parameters.transport_place_num),PLACE_TRANSPORT,time)
+			event = Event(student.id,rand(info[TRANSPORTS_START_ID]:info[TRANSPORTS_START_ID] + parameters["transports"]),PLACE_TRANSPORT,time)
 		end
 		if student.movement_state == 3 # School
 			event = Event(student.id,student.work_school_place,PLACE_WORK,time)
 		end
 		if student.movement_state == 4 # Transport
-			event = Event(student.id,rand(1:parameters.transport_place_num),PLACE_TRANSPORT,time)
+			event = Event(student.id,rand(info[TRANSPORTS_START_ID]:info[TRANSPORTS_START_ID] + parameters["transports"]),PLACE_TRANSPORT,time)
 		end
 		if student.movement_state == 5 # Home
 			event = Event(student.id,household_id,PLACE_HOME,time)
@@ -104,7 +110,7 @@ function _simulate_student(student::Person, household_id::Int,parameters::Contac
 	end
 end
 
-function _simulate_home(home::Person, household_id::Int,parameters::Contact_simulation_options,time,event_writer::EventWriter,leisure_places)
+function _simulate_home(home::Person, household_id::Int,parameters,info,time,event_writer::EventWriter,leisure_places)
 	if home.movement_state == 1
 		add_event(event_writer,Event(home.id,household_id,PLACE_HOME,time - Dates.Hour(1)))
 	end
@@ -122,49 +128,49 @@ function _simulate_home(home::Person, household_id::Int,parameters::Contact_simu
 	end
 end
 
-function get_households(df_nodes::DataFrame,parameters::Contact_simulation_options)::Array{Household,1}
-	households = Array{Household,1}()
-	gdf_households = groupby(df_nodes, :hh_id)
+# function get_households(df_nodes::DataFrame,parameters)::Array{Household,1}
+# 	households = Array{Household,1}()
+# 	gdf_households = groupby(df_nodes, :hh_id)
 	
-	lk = ReentrantLock()
-	Threads.@threads for i in 1:length(gdf_households)
-		household_record = gdf_households[i]
-		id = household_record.part_id[1]
-		household = Household(id,size(household_record,1))
-		for person_record in eachrow(household_record)
-			occupation = person_record.part_occupation
-			if occupation == WORKING
-				person = create_worker(parameters,person_record)
-				push!(household.workers,person)
-			elseif occupation == SCHOOL
-				person = create_student(parameters,person_record)
-				push!(household.students,person)
-			else
-				person = Person(person_record.part_id,person_record.part_age,person_record.part_occupation,-1,-1)
-				push!(household.unemployeds,person)
-			end
-		end
-		lock(lk) do 
-			push!(households,household)
-		end
-	end
-	return households
-end
+# 	lk = ReentrantLock()
+# 	Threads.@threads for i in 1:length(gdf_households)
+# 		household_record = gdf_households[i]
+# 		id = household_record.part_id[1]
+# 		household = Household(id,size(household_record,1))
+# 		for person_record in eachrow(household_record)
+# 			occupation = person_record.part_occupation
+# 			if occupation == WORKING
+# 				person = create_worker(parameters,person_record)
+# 				push!(household.workers,person)
+# 			elseif occupation == SCHOOL
+# 				person = create_student(parameters,person_record)
+# 				push!(household.students,person)
+# 			else
+# 				person = Person(person_record.part_id,person_record.part_age,person_record.part_occupation,-1,-1)
+# 				push!(household.unemployeds,person)
+# 			end
+# 		end
+# 		lock(lk) do 
+# 			push!(households,household)
+# 		end
+# 	end
+# 	return households
+# end
 
-function get_households(dataset_path::String,parameters::Contact_simulation_options)::Array{Household,1}
-	df_nodes = CSV.File(dataset_path) |> DataFrame
-	return get_households(df_nodes,parameters)
-end
+# function get_households(dataset_path::String,parameters::Contact_simulation_options)::Array{Household,1}
+# 	df_nodes = CSV.File(dataset_path) |> DataFrame
+# 	return get_households(df_nodes,parameters)
+# end
 
-function create_student(parameters::Contact_simulation_options,student_record)
-	school_place = rand(1:parameters.school_place_num)
-	transport = rand(1:parameters.transport_place_num)
-	return Person(student_record.part_id, student_record.part_age, student_record.part_occupation, school_place, transport)
-end
+# function create_student(parameters::Contact_simulation_options,student_record)
+# 	school_place = rand(1:parameters.school_place_num)
+# 	transport = rand(1:parameters.transport_place_num)
+# 	return Person(student_record.part_id, student_record.part_age, student_record.part_occupation, school_place, transport)
+# end
 
-function create_worker(parameters::Contact_simulation_options,worker_record)
-	work_place = rand(1:parameters.work_place_num)
-	transport = rand(1:parameters.transport_place_num)
-	return Person(worker_record.part_id, worker_record.part_age, worker_record.part_occupation, work_place, transport)
-end
+# function create_worker(parameters::Contact_simulation_options,worker_record)
+# 	work_place = rand(1:parameters.work_place_num)
+# 	transport = rand(1:parameters.transport_place_num)
+# 	return Person(worker_record.part_id, worker_record.part_age, worker_record.part_occupation, work_place, transport)
+# end
 

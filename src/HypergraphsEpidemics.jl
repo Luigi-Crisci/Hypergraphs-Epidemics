@@ -12,6 +12,8 @@ using Statistics
 using Combinatorics
 using Pipe: @pipe
 using Random
+using JSON
+using JSON3
 
 export Person
 export Household

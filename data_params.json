@@ -1,0 +1,12 @@
+{
+  "dataset": "/home/luigi/julia-workspace/HypergraphsEpidemics/resources/datasets/Salerno/contacts.csv",
+  "probs": "/home/luigi/julia-workspace/HypergraphsEpidemics/resources/datasets/Salerno/probs.json",
+  "header": ["Time", "Id", "position"],
+  "dateformat": "Y-m-dTH:M:S.0",
+  "datarow": 2,
+  "start_date": "2021-01-01T06:00:00",
+  "end_date": "2021-02-1T00:00:00",
+  "userid": "Id",
+  "venueid": "position",
+  "UTCtime": "Time"
+}

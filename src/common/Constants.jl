@@ -37,3 +37,9 @@ const PLACE_LEISURE = 5
 const MORNING = 1
 const AFTERNOON = 2
 const EVENING = 3
+
+# Info JSON strings
+const WORKPLACES_START_ID = "workplaces_start_id"
+const SCHOOLS_START_ID = "schools_start_id"
+const TRANSPORTS_START_ID = "transports_start_id"
+const HOUSEHOLDS_START_ID = "households_start_id"
