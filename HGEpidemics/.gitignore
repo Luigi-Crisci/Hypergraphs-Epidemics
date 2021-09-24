@@ -1,9 +1,0 @@
-data/
-.vscode
-Manifest.toml
-*.csv
-csv/
-test*
-latex/*
-tmp*
-results*
