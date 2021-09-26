@@ -1,0 +1,59 @@
+{
+	"people" : 1000,
+	"workplaces" : 76,
+	"transports" : 500,
+	"leisures" : 40,
+	"schools" : {
+		"kindergarten" : 1,
+		"primary_school" : 2,
+		"middle_school" : 1,
+		"high_school" : 1,
+		"university" : 1
+	},
+	"schools_size" : {
+		"kindergarten" : 60,
+		"primary_school" : 160,
+		"middle_school" : 242,
+		"high_school" : 350,
+		"university" : 34846
+	},
+	"school_probs" : {
+		"kindergarten" : 0.2,
+		"primary_school" : 0.3,
+		"middle_school" : 0.2,
+		"high_school" : 0.12,
+		"university" : 0.02
+	},
+	"students_school": {
+		"0-5" : "kindergarten",
+		"6-10" : "primary_school",
+		"11-13" : "middle_school",
+		"14-18" : "high_school",
+		"19+" : "university"
+	},
+	"population_dist": {
+		"0-4" : 4.3,
+		"5-14" : 10.2,
+		"15-19" : 5.7,
+		"20-39" : 25.0,
+		"40-64" : 36.0,
+		"65-74" : 10.0,
+		"75-84" : 6.3,
+		"85+" : 2.5
+	},
+	"companies_size": {
+		"0-9" : 95.93,
+		"10-49" : 3.64,
+		"50-249" : 0.37,
+		"250+" : 0.1
+	},
+	"company_probs": {
+		"0-9" : 0.3, 
+		"10-49" : 0.1,
+		"50-249" : 0.08,
+		"250+" : 0.02
+	},
+	"transports_prob" : 0.1,
+	"companies_max_size" : 1000,
+	"person_max_age" : 100
+}
