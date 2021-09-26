@@ -1,1 +1,4 @@
 
+[submodule "HGEpidemics"]
+	path = deps/HGEpidemics
+	url = https://github.com/Luigi-Crisci/HGEpidemics

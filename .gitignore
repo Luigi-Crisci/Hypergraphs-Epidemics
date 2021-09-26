@@ -2,3 +2,5 @@
 resources/
 .vscode
 processed_*
+*.log
+logs/
