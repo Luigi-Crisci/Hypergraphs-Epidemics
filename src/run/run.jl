@@ -1,9 +1,23 @@
 using HypergraphsEpidemics
+using DataStructures
 using SimpleHypergraphs
 using Dates
 
 
-households = generate_dataset("resources/gen_settings/Salerno/gen_param.json","resources/datasets/Salerno/",)
+function foo(iter = 1, kwargs...)
+    println(typeof(kwargs))
+    foo2(kwargs...)
+end
+
+function foo2(iter = 1, kwargs...)
+    println(haskey(d,:a))
+end
+
+d = OrderedDict{Symbol,Any}(:a => 1, :b => 3)
+println(typeof(d))
+foo(1, d...)
+
+households = generate_dataset("resources/gen_settings/Salerno/gen_param.json","resources/datasets/Salerno/")
 
 # mean = sum(h -> h.num_components, households) / length(households)
 
