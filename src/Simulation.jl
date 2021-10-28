@@ -7,12 +7,13 @@ function start_simulation(dataset_path::String, output_path::String, parameters_
 
 	# Define simulation start time
 	simulation_time_start = DateTime(2021,1,1,DAY_START)
-	simulation_time_end = simulation_time_start + Dates.Day(31)
+	simulation_time_end = simulation_time_start + Dates.Day(31) + Dates.Day(31)
 	households = _read_household_dataset(dataset_path)
 
 	# Available because workplaces always starts at id 1
 	leisure_places = rand(info[WORKPLACES_START_ID]:info[WORKPLACES_START_ID] + parameters["workplaces"],
-									 parameters["leisures"]) 
+									 parameters["leisures"])
+	serialize("resources/datasets/Salerno/leisure_places.bin",leisure_places)
 	count = 0
 	while simulation_time_start < simulation_time_end
 		count = 0

@@ -14,6 +14,7 @@ using Pipe: @pipe
 using Random
 using JSON
 using JSON3
+using Serialization
 
 export Person
 export Household
